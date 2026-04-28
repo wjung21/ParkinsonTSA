@@ -216,3 +216,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Dataset (downloaded by setup.sh — do not commit large data files)
+data/

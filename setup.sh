@@ -46,6 +46,9 @@ info "Found git-annex: $(git-annex version | head -n1)"
 if ! command -v datalad &>/dev/null; then
     info "datalad not found — installing into base environment via conda-forge..."
     conda install -y -c conda-forge datalad
+    # conda install doesn't update the current shell's PATH; add it explicitly
+    CONDA_BASE=$(conda info --base)
+    export PATH="$CONDA_BASE/bin:$PATH"
 fi
 info "Found datalad: $(datalad --version 2>&1 | head -n1)"
 
@@ -54,17 +57,15 @@ mkdir -p "$DATA_DIR"
 
 DATASET_DEST="$DATA_DIR/ds007526"
 
-if [ -d "$DATASET_DEST/.git" ] || [ -d "$DATASET_DEST/.datalad" ]; then
-    info "Dataset already cloned at $DATASET_DEST — skipping clone."
+if [ -d "$DATASET_DEST/.datalad" ]; then
+    info "Dataset already downloaded at $DATASET_DEST — skipping."
 else
     info "Cloning dataset from $DATASET_URL into $DATASET_DEST ..."
     datalad install --source "$DATASET_URL" "$DATASET_DEST"
+    info "Downloading dataset files (this may take a while) ..."
+    datalad get --dataset "$DATASET_DEST" "$DATASET_DEST"
+    info "Dataset download complete."
 fi
-
-info "Downloading dataset files (this may take a while) ..."
-datalad get --dataset "$DATASET_DEST" "$DATASET_DEST"
-
-info "Dataset download complete."
 
 # ─── 5. Create conda environment ──────────────────────────────────────────────
 if conda env list | awk '{print $1}' | grep -qx "$ENV_NAME"; then
@@ -72,8 +73,8 @@ if conda env list | awk '{print $1}' | grep -qx "$ENV_NAME"; then
     warn "To recreate it, run:  conda env remove -n $ENV_NAME"
 else
     info "Creating conda environment '$ENV_NAME' ..."
-    conda create -y -n "$ENV_NAME" python=3.11 \
-        -c conda-forge \
+    conda create -y -n "$ENV_NAME" -c conda-forge \
+        python=3.11 \
         numpy \
         pandas \
         scipy \

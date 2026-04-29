@@ -1,23 +1,3 @@
-"""
-psm.py — Propensity Score Matching (PSM)
-=========================================
-Matches a majority group to a minority group using 1:N nearest-neighbour
-matching on estimated propensity scores from logistic regression.
-
-Typical usage
--------------
->>> import pandas as pd
->>> from psm import PropensityScoreMatching
->>>
->>> df = pd.read_csv("data/ds007526/participants.tsv", sep="\t", na_values="n/a")
->>> psm = PropensityScoreMatching(
-...     target_col="group",
-...     features=["age", "sex", "moca"],
-... )
->>> matched_df = psm.fit_match(df)
->>> psm.summary()
-"""
-
 from __future__ import annotations
 
 import warnings
@@ -32,7 +12,8 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 
 class PropensityScoreMatching:
-    """Nearest-neighbour propensity score matching.
+    """Nearest-neighbour propensity score matching. Matches a majority group to a minority group using 1:N nearest-neighbour
+    matching on estimated propensity scores from logistic regression.
 
     Parameters
     ----------
@@ -61,6 +42,19 @@ class PropensityScoreMatching:
         ``"raise"`` raises a ``ValueError`` instead.
     random_state : int, default 42
         Seed for reproducibility.
+        
+    Typical usage
+    -------------
+    
+    import pandas as pd
+    from psm import PropensityScoreMatching
+    df = pd.read_csv("data/ds007526/participants.tsv", sep="\t", na_values="n/a")
+    psm = PropensityScoreMatching(
+        target_col="group",
+        features=["age", "sex", "moca"],
+        )
+    matched_df = psm.fit_match(df)
+    psm.summary()
     """
 
     def __init__(

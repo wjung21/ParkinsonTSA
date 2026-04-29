@@ -88,7 +88,11 @@ else
         jupyter \
         ipykernel \
         tqdm \
-        xarray
+        xarray \
+        onnxruntime
+
+    # mne-icalabel is not on conda-forge; install via pip after the env is created
+    conda run -n "$ENV_NAME" pip install mne-icalabel
 
     # Register the environment as a Jupyter kernel so notebooks can use it
     conda run -n "$ENV_NAME" python -m ipykernel install \

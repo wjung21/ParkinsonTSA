@@ -44,9 +44,9 @@ conda activate parkinson-tsa
 |---|---|
 | Core numerics | `numpy`, `pandas`, `scipy`, `xarray` |
 | Statistics / ML | `statsmodels`, `scikit-learn` |
-| Neuroimaging | `nibabel`, `nilearn`, `mne` |
+| Neuroimaging | `nibabel`, `nilearn`, `mne`, `mne-icalabel` |
 | Visualization | `matplotlib`, `seaborn` |
-| Utilities | `tqdm` |
+| Utilities | `tqdm`, `onnxruntime` |
 | Notebooks | `jupyter`, `ipykernel` |
 
 ## Analysis Pipeline
@@ -142,6 +142,76 @@ The preprocessed signal is exported to an `xr.DataArray` with:
 | `reference` | `"average"` | EEG reference (`"average"` or a channel name) |
 | `interpolate_bads` | `True` | Interpolate bad channels after referencing |
 
+### 3. Artifact Reduction (`utils/artifact.py`)
+
+The preprocessing pipeline removes noise outside the passband and bad channels, but leaves **biological artifacts** that overlap with the EEG frequency bands of interest:
+
+| Artifact | Origin | Typical amplitude | Affected bands |
+|---|---|---|---|
+| Eye blinks / saccades | Frontalis / extraocular muscles | 100–200 µV | Delta, theta, alpha |
+| Muscle (EMG) | Scalp, neck, jaw muscles | 10–100 µV | Beta, gamma — especially severe during walking |
+| Cardiac (ECG) | QRS complex via volume conduction | 10–30 µV | Alpha, beta |
+
+These are removed using **Independent Component Analysis (ICA)** with automatic component labelling via [ICLabel](https://github.com/mne-tools/mne-icalabel).
+
+```python
+from utils.eeg_loader import load_preprocess
+from utils.artifact import apply_ica
+
+data  = load_preprocess("sub-002", data_dir="data/ds007526")
+clean = apply_ica(data, participant_id="sub-002", data_dir="data/ds007526")
+
+clean["rest"]  # xr.DataArray — same format, artifacts removed
+clean["walk"]
+```
+
+#### How ICA artifact removal works
+
+**1. Drop channels without electrode positions**
+The EEGLAB average-reference ghost channel (`VREF`) has no scalp coordinates and is dropped before ICA. This is safe because `VREF` carries no independent signal after average referencing.
+
+**2. Fit ICA on the resting-state recording**
+Extended Infomax ICA (`method="infomax"`, `extended=True`) decomposes the resting-state EEG into statistically independent components (ICs). ICA is fitted on rest rather than walk because resting-state EEG is more stationary and has less movement contamination, producing a more stable decomposition. The same unmixing matrix is then applied to both recordings.
+
+**3. Automatic component labelling with ICLabel**
+ICLabel is a pre-trained convolutional neural network that classifies each IC into one of seven categories using the component's scalp topography and power spectrum as features:
+
+| Label | Meaning |
+|---|---|
+| `brain` | Genuine cortical EEG source — **kept** |
+| `muscle artifact` | EMG contamination — removed |
+| `eye blink` | Blink / EOG artifact — removed |
+| `heart beat` | Cardiac artifact — removed |
+| `line noise` | Power line residual — removed |
+| `channel noise` | Single-channel artifact — removed |
+| `other` | Ambiguous — kept by default |
+
+**4. Threshold-based exclusion**
+A component is removed only when its predicted label is in the exclude list **and** ICLabel's confidence exceeds `label_threshold` (default: **0.8**). This avoids removing components where the classifier is uncertain, which could discard genuine brain signal.
+
+**5. Reconstruct the clean signal**
+The artifact components are projected out of the signal using the ICA mixing matrix. The result is returned as an `xr.DataArray` identical in shape to the input, with ICA metadata appended to `.attrs`.
+
+#### Artifact reduction parameters
+
+| Parameter | Default | Description |
+|---|---|---|
+| `fit_on` | `"rest"` | Task used to fit the ICA decomposition |
+| `n_components` | `None` (= data rank) | Number of ICA components to estimate |
+| `exclude_labels` | `["eye blink", "muscle artifact", "heart beat"]` | ICLabel classes to remove |
+| `label_threshold` | `0.8` | Minimum ICLabel confidence required for removal |
+
+#### ICA metadata in output `.attrs`
+
+| Key | Description |
+|---|---|
+| `ica_fit_on` | Task ICA was fitted on |
+| `ica_n_components` | Number of components estimated |
+| `ica_excluded_indices` | Component indices removed |
+| `ica_excluded_labels` | ICLabel label for each removed component |
+| `ica_excluded_probs` | ICLabel confidence for each removed component |
+| `ica_label_threshold` | Confidence threshold used |
+
 ## Project Structure
 
 ```
@@ -150,7 +220,8 @@ ParkinsonTSA/
 │   └── ds007526/
 ├── utils/
 │   ├── psm.py          # Propensity Score Matching
-│   └── eeg_loader.py   # EEG loading & preprocessing
+│   ├── eeg_loader.py   # EEG loading & preprocessing
+│   └── artifact.py     # ICA-based artifact reduction
 ├── setup.sh            # Environment & dataset setup script
 ├── LICENSE
 └── README.md

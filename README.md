@@ -276,3 +276,6 @@ da.attrs["ica_excluded_labels"]   # ['muscle artifact', ...]
 | HDF5 attrs | — | — | All preprocessing metadata |
 
 Files can also be read outside Python with any HDF5-compatible tool (R `rhdf5`, MATLAB `h5read`, Julia `HDF5.jl`).
+
+#### Example EEG Image
+![EEGImage](exampleEEG.png)

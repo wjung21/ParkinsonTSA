@@ -87,7 +87,8 @@ else
         mne \
         jupyter \
         ipykernel \
-        tqdm
+        tqdm \
+        xarray
 
     # Register the environment as a Jupyter kernel so notebooks can use it
     conda run -n "$ENV_NAME" python -m ipykernel install \

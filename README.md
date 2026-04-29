@@ -1,16 +1,24 @@
 # ParkinsonTSA
 GitHub repository for the Fall 2026 STAT 248 final project — time series analysis of Parkinson's disease neuroimaging data.
 
-## Dataset
-
-This project uses the OpenNeuro dataset [ds007526](https://openneuro.org/datasets/ds007526). The dataset is **not stored in this repository**; `setup.sh` downloads it automatically into the `data/` folder.
-
 ## Prerequisites
 
 | Requirement | Notes |
 |---|---|
 | [Anaconda](https://www.anaconda.com/download) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html) | Required for environment creation |
 | [Homebrew](https://brew.sh) | macOS only — required to install `git-annex` |
+
+## Dataset
+
+This project uses the OpenNeuro dataset [ds007526](https://openneuro.org/datasets/ds007526).
+
+**The raw dataset is not stored in this repository.** The raw dataset download is skipped By default. To download the full raw dataset from OpenNeuro database, pass the `--download_raw` flag (see Setup section below for full details):
+
+```bash
+bash setup.sh --download_raw
+```
+
+However, downloading raw dataset and preprocessing them will take a long time. Alternatively, a user can download a zip file containing preprocessed data from this [Google Drive link](https://drive.google.com/file/d/1Aihr3s-vAQzva5NsjHVJ41CA3tbjzh7S/view?usp=drive_link). When downloaded, unzip the file in the main directory, and you will find `data_preprocessed` directory containing .h5 files of sampled subjects.
 
 ## Setup
 
@@ -30,16 +38,10 @@ The script will:
 5. Create a conda environment named `parkinson-tsa` (Python 3.11) with the packages listed below
 6. Register the environment as a Jupyter kernel
 
-By default the raw dataset download is **skipped** — the preprocessed files in `data_preprocessed/` are sufficient for analysis. Pass `--download_raw` to also fetch the full raw dataset:
-
-```bash
-bash setup.sh --download_raw
-```
-
 The script is **idempotent** — re-running it safely skips any step already completed.
 
 ## Activating the Environment
-
+Before running Python files and jupyter notebook, activate the python environment.
 ```bash
 conda activate parkinson-tsa
 ```
@@ -218,7 +220,7 @@ The artifact components are projected out of the signal using the ICA mixing mat
 | `ica_excluded_probs` | ICLabel confidence for each removed component |
 | `ica_label_threshold` | Confidence threshold used |
 
-## Project Structure
+<!-- ## Project Structure
 
 ```
 ParkinsonTSA/
@@ -236,7 +238,7 @@ ParkinsonTSA/
 ├── setup.sh                     # Environment & dataset setup script
 ├── LICENSE
 └── README.md
-```
+``` -->
 
 ### Generating preprocessed data
 

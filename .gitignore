@@ -158,6 +158,7 @@ env.bak/
 venv.bak/
 .claude
 .vscode/
+data_preprocessed.zip
 
 # Spyder project settings
 .spyderproject

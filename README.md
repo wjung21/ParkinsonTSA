@@ -220,7 +220,7 @@ The artifact components are projected out of the signal using the ICA mixing mat
 | `ica_excluded_probs` | ICLabel confidence for each removed component |
 | `ica_label_threshold` | Confidence threshold used |
 
-<!-- ## Project Structure
+## Project Structure
 
 ```
 ParkinsonTSA/
@@ -236,9 +236,10 @@ ParkinsonTSA/
 │   ├── artifact.py              # ICA-based artifact reduction
 │   └── create_preprocessed_data.py  # Full pipeline script
 ├── setup.sh                     # Environment & dataset setup script
+├── main.ipynb                   # Jupyter notebook containing main analysis scripts
 ├── LICENSE
 └── README.md
-``` -->
+```
 
 ### Generating preprocessed data
 

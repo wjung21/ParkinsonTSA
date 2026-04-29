@@ -216,13 +216,54 @@ The artifact components are projected out of the signal using the ICA mixing mat
 
 ```
 ParkinsonTSA/
-├── data/               # Downloaded dataset (git-ignored)
+├── data/                        # Downloaded dataset (git-ignored)
 │   └── ds007526/
+├── data_preprocessed/           # Preprocessed HDF5 files (git-ignored)
+│   ├── sub-002_rest.h5
+│   ├── sub-002_walk.h5
+│   └── ...
 ├── utils/
-│   ├── psm.py          # Propensity Score Matching
-│   ├── eeg_loader.py   # EEG loading & preprocessing
-│   └── artifact.py     # ICA-based artifact reduction
-├── setup.sh            # Environment & dataset setup script
+│   ├── psm.py                   # Propensity Score Matching
+│   ├── eeg_loader.py            # EEG loading & preprocessing
+│   ├── artifact.py              # ICA-based artifact reduction
+│   └── create_preprocessed_data.py  # Full pipeline script
+├── setup.sh                     # Environment & dataset setup script
 ├── LICENSE
 └── README.md
 ```
+
+### Generating preprocessed data
+
+Run the full pipeline (PSM → preprocessing → ICA) for all matched subjects:
+
+```bash
+conda activate parkinson-tsa
+python utils/create_preprocessed_data.py
+```
+
+This creates one `.h5` file per subject per task in `data_preprocessed/`. The script is **idempotent** — re-running it skips subjects whose files already exist.
+
+### Loading preprocessed data for analysis
+
+```python
+from utils.create_preprocessed_data import load_preprocessed
+
+da = load_preprocessed("data_preprocessed/sub-002_rest.h5")
+# xr.DataArray  shape (64, 60905)  dims: (channel, time)
+
+da.sel(channel="Fz")              # time series for electrode Fz
+da.sel(time=slice(10.0, 60.0))    # first 50 seconds
+da.values                          # plain numpy array (64, 60905)
+da.attrs["ica_excluded_labels"]   # ['muscle artifact', ...]
+```
+
+#### HDF5 file layout
+
+| Dataset | Type | Shape | Description |
+|---|---|---|---|
+| `/data` | float64 | (n_ch, n_t) | EEG signal in µV, gzip-compressed |
+| `/channels` | str | (n_ch,) | Electrode labels |
+| `/time` | float64 | (n_t,) | Time axis in seconds |
+| HDF5 attrs | — | — | All preprocessing metadata |
+
+Files can also be read outside Python with any HDF5-compatible tool (R `rhdf5`, MATLAB `h5read`, Julia `HDF5.jl`).

@@ -195,7 +195,7 @@ def load_preprocess(
     data_dir: str | Path,
     *,
     l_freq: float = 1.0,
-    h_freq: float = 45.0,
+    h_freq: float = 60.0,
     reference: str = "average",
     interpolate_bads: bool = True,
     verbose: bool = False,

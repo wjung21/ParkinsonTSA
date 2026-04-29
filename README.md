@@ -112,7 +112,7 @@ Electrode 3-D positions (CapTrak coordinate system, units: metres) are loaded fr
 Channels flagged as `"bad"` in the BIDS sidecar `{participant_id}_task-{task}_channels.tsv` are recorded in `raw.info["bads"]`.
 
 **3. Bandpass filtering**
-A zero-phase FIR bandpass filter is applied (default: **1–45 Hz**). The high-pass at 1 Hz removes slow drifts and DC offset; the low-pass at 45 Hz suppresses line-noise harmonics and high-frequency muscle artefacts while retaining all classical EEG frequency bands (delta 1–4 Hz, theta 4–8 Hz, alpha 8–13 Hz, beta 13–30 Hz, gamma 30–45 Hz).
+A zero-phase FIR bandpass filter is applied (default: **1–60 Hz**). The high-pass at 1 Hz removes slow drifts and DC offset; the low-pass at 60 Hz retains the full range of classical sensorimotor EEG bands (delta 0.5–4 Hz, theta 4–8 Hz, alpha 8–13 Hz, beta 13–30 Hz, low gamma 30–60 Hz) while attenuating high-frequency muscle artefacts that dominate above 60 Hz.
 
 **4. Average reference**
 The signal is re-referenced to the **common average** of all electrodes, which is the standard reference for source-independent EEG analysis and minimises the spatial bias introduced by any single reference electrode.
@@ -134,7 +134,7 @@ The preprocessed signal is exported to an `xr.DataArray` with:
 | Parameter | Default | Description |
 |---|---|---|
 | `l_freq` | `1.0` Hz | High-pass cut-off |
-| `h_freq` | `45.0` Hz | Low-pass cut-off |
+| `h_freq` | `60.0` Hz | Low-pass cut-off |
 | `reference` | `"average"` | EEG reference (`"average"` or a channel name) |
 | `interpolate_bads` | `True` | Interpolate bad channels after referencing |
 

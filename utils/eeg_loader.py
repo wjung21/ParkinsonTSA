@@ -196,15 +196,16 @@ def load_preprocess(
     *,
     l_freq: float = 1.0,
     h_freq: float = 60.0,
+    notch_freqs: list[float] | None = None,
     reference: str = "average",
     interpolate_bads: bool = True,
     verbose: bool = False,
 ) -> dict[str, xr.DataArray]:
     """Load and preprocess both EEG recordings for one participant.
 
-    Runs the full preprocessing pipeline (filter → re-reference →
-    interpolate bad channels) on the resting-state and walking recordings
-    and returns them as labeled ``xr.DataArray`` objects.
+    Runs the full preprocessing pipeline (bandpass filter → notch filter →
+    re-reference → interpolate bad channels) on the resting-state and
+    walking recordings and returns them as labeled ``xr.DataArray`` objects.
 
     Parameters
     ----------
@@ -214,8 +215,15 @@ def load_preprocess(
         Root of the BIDS dataset (e.g. ``"data/ds007526"``).
     l_freq : float, default 1.0
         High-pass cut-off frequency (Hz).
-    h_freq : float, default 45.0
+    h_freq : float, default 60.0
         Low-pass cut-off frequency (Hz).
+    notch_freqs : list[float] | None, default ``[50.0, 100.0]``
+        Frequencies (Hz) at which to apply narrow notch filters to remove
+        power line noise and its first harmonic.  Set to ``None`` or ``[]``
+        to skip notch filtering entirely.  Defaults to ``[50.0, 100.0]``
+        (European/international 50 Hz grid; the dataset ``PowerLineFrequency``
+        is 50 Hz and ``SoftwareFilters`` is ``"n/a"``, meaning no hardware
+        filtering was applied during acquisition).
     reference : str, default ``"average"``
         EEG reference to apply.  Passed directly to
         :meth:`mne.io.Raw.set_eeg_reference`.  Use ``"average"`` for
@@ -238,7 +246,7 @@ def load_preprocess(
         * **coords["channel"]** – electrode labels (str)
         * **coords["time"]** – time in seconds (float)
         * **attrs** – ``sfreq``, ``participant_id``, ``task``,
-          ``l_freq``, ``h_freq``, ``reference``,
+          ``l_freq``, ``h_freq``, ``notch_freqs``, ``reference``,
           ``interpolated_bads`` (list of interpolated channel names)
 
     Raises
@@ -247,6 +255,10 @@ def load_preprocess(
         If either the rest or walk ``.set`` file is missing for this
         participant.
     """
+    # Default: notch at 50 Hz line noise + first harmonic at 100 Hz
+    if notch_freqs is None:
+        notch_freqs = [50.0, 100.0]
+
     data_dir = Path(data_dir)
     result: dict[str, xr.DataArray] = {}
 
@@ -258,6 +270,7 @@ def load_preprocess(
             task=task,
             l_freq=l_freq,
             h_freq=h_freq,
+            notch_freqs=notch_freqs,
             reference=reference,
             interpolate_bads=interpolate_bads,
             verbose=verbose,
@@ -319,6 +332,7 @@ def _preprocess(
     task: str,
     l_freq: float,
     h_freq: float,
+    notch_freqs: list[float],
     reference: str,
     interpolate_bads: bool,
     verbose: bool,
@@ -328,16 +342,22 @@ def _preprocess(
     # ── 1. Bandpass filter ────────────────────────────────────────────
     raw.filter(l_freq=l_freq, h_freq=h_freq, verbose=verbose)
 
-    # ── 2. Re-reference ───────────────────────────────────────────────
+    # ── 2. Notch filter ───────────────────────────────────────────────
+    # Remove power line noise at each specified frequency using a
+    # narrow-band notch filter (does not affect surrounding frequencies).
+    if notch_freqs:
+        raw.notch_filter(freqs=notch_freqs, verbose=verbose)
+
+    # ── 3. Re-reference ───────────────────────────────────────────────
     raw.set_eeg_reference(reference, verbose=verbose)
 
-    # ── 3. Interpolate bad channels ───────────────────────────────────
+    # ── 4. Interpolate bad channels ───────────────────────────────────
     interpolated: list[str] = []
     if interpolate_bads and raw.info["bads"]:
         interpolated = list(raw.info["bads"])
         raw.interpolate_bads(reset_bads=True, verbose=verbose)
 
-    # ── 4. Export to xarray.DataArray ────────────────────────────────
+    # ── 5. Export to xarray.DataArray ────────────────────────────────
     data, times = raw.get_data(return_times=True)   # (n_ch, n_times) float64
 
     da = xr.DataArray(
@@ -353,6 +373,7 @@ def _preprocess(
             "sfreq":              raw.info["sfreq"],
             "l_freq":             l_freq,
             "h_freq":             h_freq,
+            "notch_freqs":        notch_freqs,
             "reference":          reference,
             "interpolated_bads":  interpolated,
         },

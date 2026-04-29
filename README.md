@@ -114,13 +114,16 @@ Channels flagged as `"bad"` in the BIDS sidecar `{participant_id}_task-{task}_ch
 **3. Bandpass filtering**
 A zero-phase FIR bandpass filter is applied (default: **1–60 Hz**). The high-pass at 1 Hz removes slow drifts and DC offset; the low-pass at 60 Hz retains the full range of classical sensorimotor EEG bands (delta 0.5–4 Hz, theta 4–8 Hz, alpha 8–13 Hz, beta 13–30 Hz, low gamma 30–60 Hz) while attenuating high-frequency muscle artefacts that dominate above 60 Hz.
 
-**4. Average reference**
+**4. Notch filtering**
+Narrow notch filters are applied at **50 Hz and 100 Hz** (default) to remove power line noise and its first harmonic. The dataset metadata (`PowerLineFrequency: 50 Hz`, `SoftwareFilters: n/a`) confirms that no hardware filtering was applied during acquisition, making this step necessary. Because the notch filter is narrow-band, it does not affect the surrounding EEG signal — this is why a 60 Hz bandpass can be used in combination rather than simply lowering the cutoff to 48 Hz.
+
+**5. Average reference**
 The signal is re-referenced to the **common average** of all electrodes, which is the standard reference for source-independent EEG analysis and minimises the spatial bias introduced by any single reference electrode.
 
-**5. Bad channel interpolation**
+**6. Bad channel interpolation**
 Channels marked bad in step 2 are reconstructed from their neighbours using **spherical spline interpolation** (MNE default). The interpolated channel names are recorded in `da.attrs["interpolated_bads"]`.
 
-**6. Export to `xarray.DataArray`**
+**7. Export to `xarray.DataArray`**
 The preprocessed signal is exported to an `xr.DataArray` with:
 - **dims** `("channel", "time")` — rows are electrodes, columns are time points
 - **`coords["channel"]`** — electrode labels (e.g. `"Fz"`, `"Cz"`)
@@ -135,6 +138,7 @@ The preprocessed signal is exported to an `xr.DataArray` with:
 |---|---|---|
 | `l_freq` | `1.0` Hz | High-pass cut-off |
 | `h_freq` | `60.0` Hz | Low-pass cut-off |
+| `notch_freqs` | `[50.0, 100.0]` Hz | Notch filter frequencies (power line + first harmonic) |
 | `reference` | `"average"` | EEG reference (`"average"` or a channel name) |
 | `interpolate_bads` | `True` | Interpolate bad channels after referencing |
 

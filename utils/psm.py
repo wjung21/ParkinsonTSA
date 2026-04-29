@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import warnings
+from pathlib import Path
 from typing import Literal
 
 import numpy as np
@@ -40,19 +41,36 @@ class PropensityScoreMatching:
         How to handle rows with missing values in *features*:
         ``"drop"`` silently removes them before matching;
         ``"raise"`` raises a ``ValueError`` instead.
+    data_dir : str | Path | None, default None
+        Root directory of a BIDS EEG dataset (e.g. ``"data/ds007526"``).
+        When provided together with *required_tasks*, subjects who are
+        missing any of the required task recordings are excluded from
+        matching.  Expects the directory layout::
+
+            {data_dir}/{participant_id}/eeg/
+                {participant_id}_task-{task}_eeg.set
+
+        The ``participant_id`` column must be present in the input
+        dataframe.  Ignored when ``None``.
+    required_tasks : list[str] | None, default None
+        Task names that every subject must have an EEG ``.set`` file for
+        (e.g. ``["rest", "walk"]``).  Only used when *data_dir* is set.
+        ``None`` disables recording-based filtering.
     random_state : int, default 42
         Seed for reproducibility.
-        
+
     Typical usage
     -------------
-    
+
     import pandas as pd
-    from psm import PropensityScoreMatching
-    df = pd.read_csv("data/ds007526/participants.tsv", sep="\t", na_values="n/a")
+    from utils.psm import PropensityScoreMatching
+    df = pd.read_csv("data/ds007526/participants.tsv", sep="\\t", na_values="n/a")
     psm = PropensityScoreMatching(
         target_col="group",
         features=["age", "sex", "moca"],
-        )
+        data_dir="data/ds007526",
+        required_tasks=["rest", "walk"],
+    )
     matched_df = psm.fit_match(df)
     psm.summary()
     """
@@ -66,6 +84,8 @@ class PropensityScoreMatching:
         caliper: float | None = None,
         replacement: bool = False,
         missing: Literal["drop", "raise"] = "drop",
+        data_dir: str | Path | None = None,
+        required_tasks: list[str] | None = None,
         random_state: int = 42,
     ) -> None:
         self.target_col = target_col
@@ -74,6 +94,8 @@ class PropensityScoreMatching:
         self.caliper = caliper
         self.replacement = replacement
         self.missing = missing
+        self.data_dir = Path(data_dir) if data_dir is not None else None
+        self.required_tasks = list(required_tasks) if required_tasks is not None else None
         self.random_state = random_state
 
         # Populated by fit()
@@ -105,9 +127,10 @@ class PropensityScoreMatching:
         if missing_cols:
             raise ValueError(f"Columns not found in dataframe: {missing_cols}")
 
+        # ── Filter by recording availability ──────────────────────────
         # Keep all columns so that participant_id, subject_id, and any other
         # metadata survive into the matched output dataframe.
-        work = df.copy()
+        work = self._filter_by_recordings(df) if self.data_dir is not None else df.copy()
 
         # ── Handle missing values ──────────────────────────────────────
         n_before = len(work)
@@ -308,6 +331,50 @@ class PropensityScoreMatching:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def _filter_by_recordings(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Return a copy of *df* keeping only subjects that have all
+        required EEG task recordings on disk.
+
+        Expects files at::
+
+            {data_dir}/{participant_id}/eeg/{participant_id}_task-{task}_eeg.set
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            Full participants dataframe; must contain a ``participant_id`` column.
+
+        Returns
+        -------
+        pd.DataFrame
+            Filtered copy with only subjects that have every required recording.
+        """
+        if "participant_id" not in df.columns:
+            raise ValueError(
+                "data_dir filtering requires a 'participant_id' column in the dataframe."
+            )
+        if not self.required_tasks:
+            return df.copy()
+
+        def _has_all_tasks(pid: str) -> bool:
+            eeg_dir = self.data_dir / pid / "eeg"
+            return all(
+                (eeg_dir / f"{pid}_task-{task}_eeg.set").exists()
+                for task in self.required_tasks
+            )
+
+        mask = df["participant_id"].apply(_has_all_tasks)
+        n_dropped = (~mask).sum()
+        if n_dropped > 0:
+            dropped_ids = df.loc[~mask, "participant_id"].tolist()
+            warnings.warn(
+                f"Excluded {n_dropped} subject(s) missing one or more required "
+                f"task recordings {self.required_tasks}: {dropped_ids}",
+                UserWarning,
+                stacklevel=3,
+            )
+        return df[mask].copy()
 
     def _encode_features(self, df: pd.DataFrame, *, fit: bool) -> np.ndarray:
         """Label-encode categorical columns; return numeric array."""

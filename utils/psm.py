@@ -105,7 +105,9 @@ class PropensityScoreMatching:
         if missing_cols:
             raise ValueError(f"Columns not found in dataframe: {missing_cols}")
 
-        work = df[required_cols].copy()
+        # Keep all columns so that participant_id, subject_id, and any other
+        # metadata survive into the matched output dataframe.
+        work = df.copy()
 
         # ── Handle missing values ──────────────────────────────────────
         n_before = len(work)

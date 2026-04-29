@@ -24,11 +24,17 @@ bash setup.sh
 
 The script will:
 1. Verify that `conda` is available
-2. Install `git-annex` — via Homebrew on macOS, or conda-forge on Linux
-3. Install `datalad` via conda-forge (used to download annexed dataset files)
-4. Download the dataset into `data/ds007526/`
+2. *(if `--download_raw`)* Install `git-annex` — via Homebrew on macOS, or conda-forge on Linux
+3. *(if `--download_raw`)* Install `datalad` via conda-forge (used to download annexed dataset files)
+4. *(if `--download_raw`)* Download the raw dataset into `data/ds007526/`
 5. Create a conda environment named `parkinson-tsa` (Python 3.11) with the packages listed below
 6. Register the environment as a Jupyter kernel
+
+By default the raw dataset download is **skipped** — the preprocessed files in `data_preprocessed/` are sufficient for analysis. Pass `--download_raw` to also fetch the full raw dataset:
+
+```bash
+bash setup.sh --download_raw
+```
 
 The script is **idempotent** — re-running it safely skips any step already completed.
 
@@ -246,9 +252,9 @@ This creates one `.h5` file per subject per task in `data_preprocessed/`. The sc
 ### Loading preprocessed data for analysis
 
 ```python
-from utils.create_preprocessed_data import load_preprocessed
+from utils.create_preprocessed_data import load_h5
 
-da = load_preprocessed("data_preprocessed/sub-002_rest.h5")
+da = load_h5("data_preprocessed/sub-002_rest.h5")
 # xr.DataArray  shape (64, 60905)  dims: (channel, time)
 
 da.sel(channel="Fz")              # time series for electrode Fz

@@ -30,7 +30,7 @@ HDF5 internal layout::
     /attrs       HDF5 group attributes             — all metadata
 
 List-valued attributes (notch_freqs, ica_excluded_*, …) are stored as
-JSON strings and automatically deserialised by load_preprocessed().
+JSON strings and automatically deserialised by load_h5().
 
 Usage
 -----
@@ -45,8 +45,8 @@ Loading saved files
 -------------------
 Use the bundled helper::
 
-    from utils.create_preprocessed_data import load_preprocessed
-    da = load_preprocessed("data_preprocessed/sub-002_rest.h5")
+    from utils.create_preprocessed_data import load_h5
+    da = load_h5("data_preprocessed/sub-002_rest.h5")
     # da is an xr.DataArray with all metadata in .attrs
 """
 
@@ -139,7 +139,7 @@ def save_preprocessed(da: xr.DataArray, path: Path) -> None:
 
         # ── Metadata attributes ───────────────────────────────────────
         # Lists are serialised to JSON strings so HDF5 can store them;
-        # load_preprocessed() deserialises them back to Python lists.
+        # load_h5() deserialises them back to Python lists.
         for key, val in da.attrs.items():
             if isinstance(val, (list, dict)):
                 f.attrs[key] = json.dumps(val)
@@ -147,7 +147,7 @@ def save_preprocessed(da: xr.DataArray, path: Path) -> None:
                 f.attrs[key] = val
 
 
-def load_preprocessed(path: str | Path) -> xr.DataArray:
+def load_h5(path: str | Path) -> xr.DataArray:
     """Load a preprocessed EEG recording from an HDF5 file.
 
     Parameters
@@ -164,7 +164,7 @@ def load_preprocessed(path: str | Path) -> xr.DataArray:
 
     Examples
     --------
-    >>> da = load_preprocessed("data_preprocessed/sub-002_rest.h5")
+    >>> da = load_h5("data_preprocessed/sub-002_rest.h5")
     >>> da.sel(channel="Fz")          # time series for electrode Fz
     >>> da.attrs["ica_excluded_labels"]
     """

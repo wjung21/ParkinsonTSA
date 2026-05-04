@@ -115,6 +115,7 @@ else
         ipykernel \
         tqdm \
         xarray \
+        pingouin \
         onnxruntime
 
     # mne-icalabel is not on conda-forge; install via pip after the env is created

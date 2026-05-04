@@ -159,6 +159,7 @@ venv.bak/
 .claude
 .vscode/
 data_preprocessed.zip
+.DS_Store
 
 # Spyder project settings
 .spyderproject

@@ -21,7 +21,7 @@ Preprocessing pipeline (``load_preprocess``)
 1. Load EEGLAB ``.set`` file via MNE.
 2. Set electrode positions from the BIDS ``_electrodes.tsv`` sidecar.
 3. Mark bad channels from ``_channels.tsv``.
-4. Bandpass filter (default 1–45 Hz).
+4. Bandpass filter (default 1–45 Hz; low-pass sits below 50 Hz line noise).
 5. Re-reference to average.
 6. Interpolate bad channels (spherical spline).
 7. Export to ``xarray.DataArray`` (dims: channel × time).
@@ -195,7 +195,7 @@ def load_preprocess(
     data_dir: str | Path,
     *,
     l_freq: float = 1.0,
-    h_freq: float = 60.0,
+    h_freq: float = 45.0,
     notch_freqs: list[float] | None = None,
     reference: str = "average",
     interpolate_bads: bool = True,
@@ -215,15 +215,16 @@ def load_preprocess(
         Root of the BIDS dataset (e.g. ``"data/ds007526"``).
     l_freq : float, default 1.0
         High-pass cut-off frequency (Hz).
-    h_freq : float, default 60.0
+    h_freq : float, default 45.0
         Low-pass cut-off frequency (Hz).
-    notch_freqs : list[float] | None, default ``[50.0, 100.0]``
+    notch_freqs : list[float] | None, default ``[50.0]``
         Frequencies (Hz) at which to apply narrow notch filters to remove
-        power line noise and its first harmonic.  Set to ``None`` or ``[]``
-        to skip notch filtering entirely.  Defaults to ``[50.0, 100.0]``
-        (European/international 50 Hz grid; the dataset ``PowerLineFrequency``
-        is 50 Hz and ``SoftwareFilters`` is ``"n/a"``, meaning no hardware
-        filtering was applied during acquisition).
+        power line noise.  Set to ``None`` or ``[]`` to skip notch filtering
+        entirely.  Defaults to ``[50.0]`` (European/international 50 Hz grid;
+        the dataset ``PowerLineFrequency`` is 50 Hz and ``SoftwareFilters``
+        is ``"n/a"``, meaning no hardware filtering was applied during
+        acquisition).  The 100 Hz harmonic is already eliminated by the
+        45 Hz low-pass filter and does not need a dedicated notch.
     reference : str, default ``"average"``
         EEG reference to apply.  Passed directly to
         :meth:`mne.io.Raw.set_eeg_reference`.  Use ``"average"`` for
@@ -255,9 +256,9 @@ def load_preprocess(
         If either the rest or walk ``.set`` file is missing for this
         participant.
     """
-    # Default: notch at 50 Hz line noise + first harmonic at 100 Hz
+    # Default: notch at 50 Hz line noise (100 Hz harmonic already cut by 45 Hz LP)
     if notch_freqs is None:
-        notch_freqs = [50.0, 100.0]
+        notch_freqs = [50.0]
 
     data_dir = Path(data_dir)
     result: dict[str, xr.DataArray] = {}

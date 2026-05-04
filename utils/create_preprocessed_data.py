@@ -99,7 +99,7 @@ PREPROCESS_REFERENCE  = "average"
 
 # ICA settings
 ICA_FIT_ON          = "rest"
-ICA_EXCLUDE_LABELS  = ["eye blink", "muscle artifact", "heart beat"]
+ICA_EXCLUDE_LABELS  = ["eye blink", "heart beat"]  # muscle artifact removed to preserve beta-band brain components
 ICA_LABEL_THRESHOLD = 0.8
 ICA_RANDOM_STATE    = 42
 

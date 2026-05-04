@@ -120,10 +120,10 @@ Electrode 3-D positions (CapTrak coordinate system, units: metres) are loaded fr
 Channels flagged as `"bad"` in the BIDS sidecar `{participant_id}_task-{task}_channels.tsv` are recorded in `raw.info["bads"]`.
 
 **3. Bandpass filtering**
-A zero-phase FIR bandpass filter is applied (default: **1–60 Hz**). The high-pass at 1 Hz removes slow drifts and DC offset; the low-pass at 60 Hz retains the full range of classical sensorimotor EEG bands (delta 0.5–4 Hz, theta 4–8 Hz, alpha 8–13 Hz, beta 13–30 Hz, low gamma 30–60 Hz) while attenuating high-frequency muscle artefacts that dominate above 60 Hz.
+A zero-phase FIR bandpass filter is applied (default: **1–45 Hz**). The high-pass at 1 Hz removes slow drifts and DC offset; the low-pass at 45 Hz retains all classical sensorimotor EEG bands (delta 0.5–4 Hz, theta 4–8 Hz, alpha 8–13 Hz, beta 13–30 Hz) while sitting safely below the 50 Hz power-line frequency, making the filter boundary independent of line noise.
 
 **4. Notch filtering**
-Narrow notch filters are applied at **50 Hz and 100 Hz** (default) to remove power line noise and its first harmonic. The dataset metadata (`PowerLineFrequency: 50 Hz`, `SoftwareFilters: n/a`) confirms that no hardware filtering was applied during acquisition, making this step necessary. Because the notch filter is narrow-band, it does not affect the surrounding EEG signal — this is why a 60 Hz bandpass can be used in combination rather than simply lowering the cutoff to 48 Hz.
+A narrow notch filter is applied at **50 Hz** (default) to remove power-line noise. The dataset metadata (`PowerLineFrequency: 50 Hz`, `SoftwareFilters: n/a`) confirms that no hardware filtering was applied during acquisition, making this step necessary. The 100 Hz harmonic is already fully attenuated by the 45 Hz low-pass and does not need a dedicated notch.
 
 **5. Average reference**
 The signal is re-referenced to the **common average** of all electrodes, which is the standard reference for source-independent EEG analysis and minimises the spatial bias introduced by any single reference electrode.
@@ -145,8 +145,8 @@ The preprocessed signal is exported to an `xr.DataArray` with:
 | Parameter | Default | Description |
 |---|---|---|
 | `l_freq` | `1.0` Hz | High-pass cut-off |
-| `h_freq` | `60.0` Hz | Low-pass cut-off |
-| `notch_freqs` | `[50.0, 100.0]` Hz | Notch filter frequencies (power line + first harmonic) |
+| `h_freq` | `45.0` Hz | Low-pass cut-off (below 50 Hz line noise) |
+| `notch_freqs` | `[50.0]` Hz | Notch filter frequencies (power line; 100 Hz harmonic already cut by LP) |
 | `reference` | `"average"` | EEG reference (`"average"` or a channel name) |
 | `interpolate_bads` | `True` | Interpolate bad channels after referencing |
 
@@ -187,12 +187,14 @@ ICLabel is a pre-trained convolutional neural network that classifies each IC in
 | Label | Meaning |
 |---|---|
 | `brain` | Genuine cortical EEG source — **kept** |
-| `muscle artifact` | EMG contamination — removed |
+| `muscle artifact` | EMG contamination — **kept** (see note below) |
 | `eye blink` | Blink / EOG artifact — removed |
 | `heart beat` | Cardiac artifact — removed |
-| `line noise` | Power line residual — removed |
-| `channel noise` | Single-channel artifact — removed |
+| `line noise` | Power line residual — kept by default |
+| `channel noise` | Single-channel artifact — kept by default |
 | `other` | Ambiguous — kept by default |
+
+> **Why muscle artifact components are kept**: ICLabel's `muscle artifact` label targets high-frequency, spatially diffuse EMG contamination. However, cortical beta-band oscillations (13–30 Hz) overlap with EMG in both frequency and scalp topography, so removing `muscle artifact` components risks discarding genuine beta-range brain signal. Excluding this label preserves beta activity at the cost of retaining some residual EMG, which is an acceptable trade-off for sensorimotor analyses where beta is the band of interest.
 
 **4. Threshold-based exclusion**
 A component is removed only when its predicted label is in the exclude list **and** ICLabel's confidence exceeds `label_threshold` (default: **0.8**). This avoids removing components where the classifier is uncertain, which could discard genuine brain signal.
@@ -206,7 +208,7 @@ The artifact components are projected out of the signal using the ICA mixing mat
 |---|---|---|
 | `fit_on` | `"rest"` | Task used to fit the ICA decomposition |
 | `n_components` | `None` (= data rank) | Number of ICA components to estimate |
-| `exclude_labels` | `["eye blink", "muscle artifact", "heart beat"]` | ICLabel classes to remove |
+| `exclude_labels` | `["eye blink", "heart beat"]` | ICLabel classes to remove (`"muscle artifact"` excluded to preserve beta-band brain signal) |
 | `label_threshold` | `0.8` | Minimum ICLabel confidence required for removal |
 
 #### ICA metadata in output `.attrs`
@@ -263,7 +265,7 @@ da = load_h5("data_preprocessed/sub-002_rest.h5")
 da.sel(channel="Fz")              # time series for electrode Fz
 da.sel(time=slice(10.0, 60.0))    # first 50 seconds
 da.values                          # plain numpy array (64, 60905)
-da.attrs["ica_excluded_labels"]   # ['muscle artifact', ...]
+da.attrs["ica_excluded_labels"]   # ['eye blink', 'heart beat', ...]
 ```
 
 #### HDF5 file layout

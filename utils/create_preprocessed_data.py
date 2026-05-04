@@ -93,8 +93,8 @@ PSM_RANDOM_STATE   = 42
 
 # Preprocessing settings
 PREPROCESS_L_FREQ     = 1.0
-PREPROCESS_H_FREQ     = 60.0
-PREPROCESS_NOTCH      = [50.0, 100.0]
+PREPROCESS_H_FREQ     = 45.0   # below 50 Hz line noise; 100 Hz harmonic already cut by LP
+PREPROCESS_NOTCH      = [50.0]
 PREPROCESS_REFERENCE  = "average"
 
 # ICA settings

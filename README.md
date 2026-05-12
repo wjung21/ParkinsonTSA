@@ -281,3 +281,7 @@ Files can also be read outside Python with any HDF5-compatible tool (R `rhdf5`, 
 
 #### Example EEG Image
 ![EEGImage](exampleEEG.png)
+
+## Disclosure
+
+EEG processing codes, setup.sh, and README were written with Claude. The main analysis code (main.ipynb) was written by myself.

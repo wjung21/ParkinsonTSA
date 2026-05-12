@@ -192,6 +192,19 @@ def load_h5(path: str | Path) -> xr.DataArray:
         attrs=attrs,
     )
 
+def segment_EEG(data, window = 5, sfreq = 250):
+    """Segment the continuous EEG data into epochs corresponding to rest and walk tasks.
+    """
+    time = data.time.values
+    n_samples_per_window = int(window * sfreq)
+    n_windows = data.values.shape[1] // n_samples_per_window
+    segmented_data = np.array_split(data.values[:, n_samples_per_window:n_windows * n_samples_per_window], n_windows-1, axis=1)
+    segmented_data = np.stack(segmented_data, axis=0) # exclude the first window
+    segmented_time = np.array_split(time[n_samples_per_window:n_windows * n_samples_per_window], n_windows-1) # exclude the first window
+    segmented_time = np.stack(segmented_time, axis=0)
+    
+    return segmented_time, segmented_data
+    
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Main pipeline

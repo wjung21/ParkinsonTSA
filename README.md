@@ -20,6 +20,8 @@ bash setup.sh --download_raw
 
 However, downloading raw dataset and preprocessing them will take a long time. Alternatively, a user can download a zip file containing preprocessed data from this [Google Drive link](https://drive.google.com/file/d/1Aihr3s-vAQzva5NsjHVJ41CA3tbjzh7S/view?usp=drive_link). When downloaded, unzip the file in the main directory, and you will find `data_preprocessed` directory containing .h5 files of sampled subjects.
 
+If you downloaded the raw dataset, make sure you create preprocessed data before running `main.ipynb`. See [Generating preprocessed data](#generating-preprocessed-data).
+
 ## Setup
 
 Clone the repository and run the setup script from the project root:

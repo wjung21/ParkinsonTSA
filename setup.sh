@@ -99,27 +99,31 @@ if conda env list | awk '{print $1}' | grep -qx "$ENV_NAME"; then
     warn "To recreate it, run:  conda env remove -n $ENV_NAME"
 else
     info "Creating conda environment '$ENV_NAME' ..."
+    conda config --set solver libmamba
+    conda config --set channel_priority strict
     conda create -y -n "$ENV_NAME" -c conda-forge \
         python=3.11 \
-        numpy \
-        pandas \
-        scipy \
-        matplotlib \
-        seaborn \
-        scikit-learn \
-        statsmodels \
-        nibabel \
-        nilearn \
-        mne \
-        jupyter \
-        ipykernel \
-        tqdm \
-        xarray \
-        pingouin \
-        onnxruntime
+        nibabel=5.4.0 \
+        nilearn=0.13.1 \
+        mne=1.12.1 \
+        jupyter=1.1.1 \
+        ipykernel=7.2.0 \
+        tqdm=4.67.3 \
+        xarray=2026.4.0 \
+        pingouin=0.6.1 \
+        h5py=3.16.0 \
+        onnxruntime=1.25.1 \
+        numpy=2.4.3 \
+        pandas=3.0.3 \
+        scipy=1.17.1 \
+        matplotlib=3.10.9 \
+        seaborn=0.13.2 \
+        scikit-learn=1.8.0 \
+        statsmodels=0.14.6 \
 
-    # mne-icalabel is not on conda-forge; install via pip after the env is created
-    conda run -n "$ENV_NAME" pip install mne-icalabel
+
+    # mne-icalabel & pkg_resources is not on conda-forge; install via pip after the env is created
+    conda run -n "$ENV_NAME" pip install mne-icalabel==0.8.1
 
     # Register the environment as a Jupyter kernel so notebooks can use it
     conda run -n "$ENV_NAME" python -m ipykernel install \

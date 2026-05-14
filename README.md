@@ -18,7 +18,7 @@ This project uses the OpenNeuro dataset [ds007526](https://openneuro.org/dataset
 bash setup.sh --download_raw
 ```
 
-However, downloading raw dataset and preprocessing them will take a long time. Alternatively, a user can download a zip file containing preprocessed data from this [Google Drive link](https://drive.google.com/file/d/1Aihr3s-vAQzva5NsjHVJ41CA3tbjzh7S/view?usp=drive_link). When downloaded, unzip the file in the main directory, and you will find `data_preprocessed` directory containing .h5 files of sampled subjects.
+However, downloading raw dataset and preprocessing them will take a long time. Alternatively, a user can download a zip file containing preprocessed data from this [Google Drive link](https://drive.google.com/file/d/1VNHgcpJ7q9Bxw9rPpVUn8EPbK7DTnDhT/view?usp=sharing). When downloaded, unzip the file in the main directory, and you will find `data_preprocessed` directory containing .h5 files of sampled subjects.
 
 If you downloaded the raw dataset, make sure you create preprocessed data before running `main.ipynb`. See [Generating preprocessed data](#generating-preprocessed-data).
 
